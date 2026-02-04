@@ -31,16 +31,20 @@ internal static class LifeSupportUtility
 			.Where(capacity => capacity.lethalMechanoids).ToHashSet();
 	}
 
-	internal static bool ValidLifeSupportNearby(this Pawn pawn) => pawn.CurrentBed() is { } bed
-	                                                               && GenAdj.CellsAdjacent8Way(bed)
-		                                                               .Any(cell =>
-			                                                               cell.GetFirstThingWithComp<LifeSupportComp>(
-				                                                               bed.Map) != null
-			                                                               && cell
-				                                                               .GetFirstThingWithComp<LifeSupportComp>(
-					                                                               bed.Map).GetComp<LifeSupportComp>()
-				                                                               .Active);
+	internal static bool ValidLifeSupportNearby(this Pawn pawn)
+	{
+		if (pawn.CurrentBed() is not Building_Bed bed)
+			return false;
 
+		var affected = bed.GetComp<CompAffectedByFacilities>();
+		if (affected == null)
+			return false;
+
+		return affected.LinkedFacilitiesListForReading
+			.OfType<ThingWithComps>()
+			.Select(twc => twc.GetComp<LifeSupportComp>())
+			.Any(comp => comp != null && comp.Active);
+	}
 	private static bool NeedsLifeSupport(this Pawn pawn) =>
 		(pawn.RaceProps.IsFlesh ? capacitySetFlesh : capacitySetMechanoid).Any(capacity =>
 			!pawn.health.capacities.CapableOf(capacity))

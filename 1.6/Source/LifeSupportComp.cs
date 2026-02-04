@@ -20,13 +20,16 @@ public class LifeSupportComp : ThingComp
 			return;
 		}
 
-		//Check for state change in surrounding pawns in beds.
-		List<Pawn> pawns = parent.CellsAdjacent8WayAndInside()
-			.SelectMany(cell =>
-				cell.GetThingList(parent.Map).OfType<Building_Bed>().SelectMany(bed => bed.CurOccupants))
-			.Where(pawn => !pawn.health.Dead)
-			.Distinct()
-			.ToList();
+		// Instead of scanning adjacent cells, use facility links.
+		var affected = parent.GetComp<CompAffectedByFacilities>();
+
+		List<Pawn> pawns =
+			(affected?.LinkedFacilitiesListForReading ?? Enumerable.Empty<Thing>())
+				.OfType<Building_Bed>()
+				.SelectMany(bed => bed.CurOccupants)
+				.Where(pawn => pawn != null && !pawn.health.Dead)
+				.Distinct()
+				.ToList();
 
 		foreach (Pawn pawn in pawns)
 		{
